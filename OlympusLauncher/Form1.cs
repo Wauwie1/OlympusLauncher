@@ -12,6 +12,8 @@ namespace OlympusLauncher
     public partial class Form1 : Form
     {
         private int currentVersion;
+        private int latestVersion;
+        private int newVersion;
         private Statuses status = Statuses.fetchingVersion;
 
         public List<string> PatchTypes = new List<string>
@@ -29,7 +31,16 @@ namespace OlympusLauncher
         {
            currentVersion = int.Parse(File.ReadAllText(Application.StartupPath + @"\currentVersion.txt"));
            checkConnection();
-           int latestVersion = int.Parse(getLatestVersion());
+           latestVersion = int.Parse(getLatestVersion());
+            UpdateForm();
+
+
+        }
+
+        private void UpdateForm()
+        {
+            currentVersion = int.Parse(File.ReadAllText(Application.StartupPath + @"\currentVersion.txt"));
+            latestVersion = int.Parse(getLatestVersion());
 
             if (latestVersion > currentVersion)
             {
@@ -37,6 +48,8 @@ namespace OlympusLauncher
                 Button_Start.Enabled = true;
                 Button_Start.Text = "Update";
                 status = Statuses.update;
+                progressBar1.Style = ProgressBarStyle.Blocks;
+                progressBar1.Value = 100;
             }
             else
             {
@@ -44,10 +57,9 @@ namespace OlympusLauncher
                 Button_Start.Enabled = true;
                 Button_Start.Text = "Launch";
                 status = Statuses.launch;
+                progressBar1.Style = ProgressBarStyle.Blocks;
+                progressBar1.Value = 100;
             }
-
-
-
         }
 
         private void checkConnection()
@@ -111,11 +123,14 @@ namespace OlympusLauncher
 
         private void startUpdate()
         {
-            double nextVersion = currentVersion + 1;
-
 
             try
             {
+                progressBar1.Style = ProgressBarStyle.Marquee;
+                Label_Status.Text = "Starting update.";
+                currentVersion = int.Parse(File.ReadAllText(Application.StartupPath + @"\currentVersion.txt"));
+                int nextVersion = currentVersion + 1;
+
                 // Setup session options
                 SessionOptions sessionOptions = new SessionOptions
                 {
@@ -131,14 +146,17 @@ namespace OlympusLauncher
                     // Connect
                     session.Open(sessionOptions);
 
-                    string tempDirectory = Application.StartupPath + @"\TempPatches\" + nextVersion;
-                    Directory.CreateDirectory(tempDirectory);
+                    for (newVersion = nextVersion; newVersion <= latestVersion; newVersion++)
+                    {
+                        string tempDirectory = Application.StartupPath + @"\TempPatches\" + nextVersion;
+                        Directory.CreateDirectory(tempDirectory);
 
-                    // Download files
-                    string downloadDirectory = "/home/updater/deltapatches/" + nextVersion;
-                    session.GetFiles(downloadDirectory, tempDirectory).Check();
+                        // Download files
+                        string downloadDirectory = "/home/updater/deltapatches/" + nextVersion;
+                        session.GetFiles(downloadDirectory, tempDirectory).Check();
 
-                    patch(nextVersion.ToString());
+                        patch(nextVersion.ToString());
+                    }
                 }
             }
             catch (Exception e)
@@ -161,7 +179,8 @@ namespace OlympusLauncher
                 if (File.Exists(patchFile))
                 {
                     MessageBox.Show(patchType + " exists!");
-                    DeltaPatcher.Patch(wzFile, patchFile, newFile);
+                    var patcher = new DeltaPatcher();
+                    patcher.Patch(wzFile, patchFile, newFile);
                     if (File.Exists(newFile))
                     {
                         File.Delete(wzFile);

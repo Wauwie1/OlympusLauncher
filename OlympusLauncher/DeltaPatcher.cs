@@ -10,7 +10,7 @@ namespace OlympusLauncher
 {
     class DeltaPatcher
     {
-        public static void Patch(string sourceName, string patchName, string targetName)
+        public void Patch(string sourceName, string patchName, string targetName)
         {
 
             using (FileStream source = OpenForRead(sourceName))
